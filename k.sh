@@ -139,7 +139,7 @@ k () {
   # Colors
   # ----------------------------------------------------------------------------
   # default colors
-  K_COLOR_DI="0;34"  # di:directory
+  K_COLOR_DI="0;94"  # di:directory
   K_COLOR_LN="0;35"  # ln:symlink
   K_COLOR_SO="0;32"  # so:socket
   K_COLOR_PI="0;33"  # pi:pipe
@@ -150,7 +150,9 @@ k () {
   K_COLOR_SG="30;46" # sg:executable with setgid bit set
   K_COLOR_TW="30;42" # tw:directory writable to others, with sticky bit
   K_COLOR_OW="30;43" # ow:directory writable to others, without sticky bit
-  K_COLOR_BR="0;35"  # branch
+  K_COLOR_BR="0;95"  # branch
+  K_COLOR_MA="0;93"  # branch
+
 
   # read colors if osx and $LSCOLORS is defined
   if [[ $(uname) == 'Darwin' && -n $LSCOLORS ]]; then
@@ -200,7 +202,7 @@ k () {
 
     typeset -i TOTAL_BLOCKS=0
 
-    MAX_LEN=(0 0 0 0 0 0)
+    MAX_LEN=(0 0 0 0 0 0 0)
 
     # Array to hold results from `stat` call
     RESULTS=()
@@ -236,6 +238,8 @@ k () {
       31449600 240  # < less than 1 year old
       62899200 238  # < less than 2 years old
       )
+
+    typeset -i BRANCHNAME_LENGTH
 
     # ----------------------------------------------------------------------------
     # Build up list of files/directories to show
@@ -276,7 +280,7 @@ k () {
           #Use (^/) instead of (.) so sockets and symlinks get displayed
           show_list+=($base_dir/*(^/$SORT_GLOB))
         else
-	  show_list+=($base_dir/*($SORT_GLOB))
+          show_list+=($base_dir/*($SORT_GLOB))
         fi
       fi
     fi
@@ -297,6 +301,13 @@ k () {
       zstat -H $statvar -Lsn -F "%s^%d^%b^%H:%M^%Y" -- "$fn"  # use lstat, render mode/uid/gid to strings
       STATS_PARAMS_LIST+=($statvar)
       i+=1
+      if [ -d $fn ] || [ -L $fn ]; then
+        branch_name="$(git --git-dir="$fn/.git" rev-parse --abbrev-ref HEAD 2> /dev/null)"
+        branchname_len="${#branch_name}"
+        if [ $branchname_len -gt $BRANCHNAME_LENGTH ] && [ $branchname_len -lt 20 ]; then
+          BRANCHNAME_LENGTH=$branchname_len
+        fi
+      fi
     done
 
 
@@ -321,6 +332,11 @@ k () {
 
     # Print total block before listing
     echo "total $TOTAL_BLOCKS"
+
+    # ----------------------------------------------------------------------------
+    # get max chars for branch name
+    # ----------------------------------------------------------------------------
+    # echo "hodor ${show_list[@]}"
 
     # ----------------------------------------------------------------------------
     # Loop through each line of stat, pad where appropriate and do git dirty checking
@@ -514,6 +530,8 @@ k () {
           fi
         fi
       fi
+      MAX_LEN[6]=$BRANCHNAME_LENGTH
+      REPOBRANCH="${(r:MAX_LEN[6]:)REPOBRANCH}"
 
       # --------------------------------------------------------------------------
       # Colour the filename
@@ -543,7 +561,11 @@ k () {
       # --------------------------------------------------------------------------
       # Colour branch
       # --------------------------------------------------------------------------
-      REPOBRANCH=$'\e['"$K_COLOR_BR"'m'"$REPOBRANCH"$'\e[0m';
+      if [[ "$REPOBRANCH" != "master" ]]; then
+        REPOBRANCH=$'\e['"$K_COLOR_BR"'m'"$REPOBRANCH"$'\e[0m';
+      else
+        REPOBRANCH=$'\e['"$K_COLOR_MA"'m'"$REPOBRANCH"$'\e[0m';
+      fi
 
       # --------------------------------------------------------------------------
       # Format symlink target
@@ -553,7 +575,7 @@ k () {
       # --------------------------------------------------------------------------
       # Display final result
       # --------------------------------------------------------------------------
-      print -r -- "$PERMISSIONS_OUTPUT $HARDLINKCOUNT $OWNER $GROUP $FILESIZE_OUT $DATE_OUTPUT $REPOMARKER $NAME$SYMLINK_TARGET $REPOBRANCH"
+      print -r -- "$PERMISSIONS_OUTPUT $HARDLINKCOUNT $OWNER $GROUP $FILESIZE_OUT $DATE_OUTPUT $REPOMARKER $REPOBRANCH $NAME$SYMLINK_TARGET"
 
       k=$((k+1)) # Bump loop index
     done
