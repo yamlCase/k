@@ -150,8 +150,8 @@ k () {
   K_COLOR_SG="30;46" # sg:executable with setgid bit set
   K_COLOR_TW="30;42" # tw:directory writable to others, with sticky bit
   K_COLOR_OW="30;43" # ow:directory writable to others, without sticky bit
-  K_COLOR_BR="0;95"  # branch
-  K_COLOR_MA="0;93"  # branch
+  K_COLOR_BR="0;91"  # branch
+  K_COLOR_MA="0;92"  # branch
 
 
   # read colors if osx and $LSCOLORS is defined
@@ -534,6 +534,17 @@ k () {
       REPOBRANCH="${(r:MAX_LEN[6]:)REPOBRANCH}"
 
       # --------------------------------------------------------------------------
+      # Colour branch
+      # --------------------------------------------------------------------------
+      if [[ "$REPOBRANCH" =~ '^master\s*$' ]]; then
+        REPOBRANCH=$'\e['"$K_COLOR_MA"'m'"$REPOBRANCH"$'\e[0m';
+      else
+        REPOBRANCH=$'\e['"$K_COLOR_BR"'m'"$REPOBRANCH"$'\e[0m';
+      fi
+
+
+
+      # --------------------------------------------------------------------------
       # Colour the filename
       # --------------------------------------------------------------------------
       # Unfortunately, the choices for quoting which escape ANSI color sequences are q & qqqq; none of q- qq qqq work.
@@ -556,15 +567,6 @@ k () {
       elif [[ $IS_EXECUTABLE        == 1 ]]; then NAME=$'\e['"$K_COLOR_EX"'m'"$NAME"$'\e[0m';
       elif [[ $IS_BLOCK_SPECIAL     == 1 ]]; then NAME=$'\e['"$K_COLOR_BD"'m'"$NAME"$'\e[0m';
       elif [[ $IS_CHARACTER_SPECIAL == 1 ]]; then NAME=$'\e['"$K_COLOR_CD"'m'"$NAME"$'\e[0m';
-      fi
-
-      # --------------------------------------------------------------------------
-      # Colour branch
-      # --------------------------------------------------------------------------
-      if [[ "$REPOBRANCH" != "master" ]]; then
-        REPOBRANCH=$'\e['"$K_COLOR_BR"'m'"$REPOBRANCH"$'\e[0m';
-      else
-        REPOBRANCH=$'\e['"$K_COLOR_MA"'m'"$REPOBRANCH"$'\e[0m';
       fi
 
       # --------------------------------------------------------------------------
